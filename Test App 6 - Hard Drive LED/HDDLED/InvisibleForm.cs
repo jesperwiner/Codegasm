@@ -11,6 +11,12 @@ using System.Management;
 using System.Management.Instrumentation;
 using System.Collections.Specialized;
 using System.Threading;
+using System.Diagnostics;
+using CUE.NET;
+using CUE.NET.Devices.Keyboard;
+using CUE.NET.Devices.Keyboard.Enums;
+using CUE.NET.Devices.Generic.Enums;
+using CUE.NET.Exceptions;
 
 namespace HDDLED
 {
@@ -20,6 +26,7 @@ namespace HDDLED
         NotifyIcon hddNotifyIcon;
         Icon busyIcon;
         Icon idleIcon;
+        CorsairKeyboard keyboard;
         Thread hddInfoWorkerThread;
         #endregion
 
@@ -55,6 +62,24 @@ namespace HDDLED
             //
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
+
+            try
+            {
+                CueSDK.Initialize();
+                Debug.WriteLine("Initialized with " + CueSDK.LoadedArchitecture + "-SDK");
+
+                keyboard = CueSDK.KeyboardSDK;
+                if (keyboard == null)
+                    throw new WrapperException("No keyboard found");
+            }
+            catch (CUEException ex)
+            {
+                Debug.WriteLine("CUE Exception! ErrorCode: " + Enum.GetName(typeof(CorsairError), ex.Error));
+            }
+            catch (WrapperException ex)
+            {
+                Debug.WriteLine("Wrapper Exception! Message:" + ex.Message);
+            }
 
             // Start worker thread that pulls HDD activity
             hddInfoWorkerThread = new Thread(new ThreadStart(HddActivityThread));
@@ -100,11 +125,15 @@ namespace HDDLED
                             {
                                 // Show busy icon
                                 hddNotifyIcon.Icon = busyIcon;
+                                keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Red;
+                                keyboard.Update();
                             }
                             else
                             {
                                 // Show idle icon
                                 hddNotifyIcon.Icon = idleIcon;
+                                keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Green;
+                                keyboard.Update();
                             }
                         }
                     }

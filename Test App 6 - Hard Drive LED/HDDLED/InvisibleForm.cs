@@ -17,6 +17,8 @@ using CUE.NET.Devices.Keyboard;
 using CUE.NET.Devices.Keyboard.Enums;
 using CUE.NET.Devices.Generic.Enums;
 using CUE.NET.Exceptions;
+using CUE.NET.Gradients;
+using CUE.NET.Brushes;
 
 namespace HDDLED
 {
@@ -31,6 +33,9 @@ namespace HDDLED
         #endregion
 
         #region Main Form (entry point)
+        /// <summary>
+        /// 
+        /// </summary>
         public InvisibleForm()
         {
             InitializeComponent();
@@ -38,7 +43,9 @@ namespace HDDLED
             // Load icons from files into objects
             busyIcon = new Icon("HDD_Busy.ico");
             idleIcon = new Icon("HDD_Idle.ico");
-            
+
+      
+
             // Create notify icons and assign idle icon and show it
             hddNotifyIcon = new NotifyIcon();
             hddNotifyIcon.Icon = idleIcon;
@@ -67,10 +74,15 @@ namespace HDDLED
             {
                 CueSDK.Initialize();
                 Debug.WriteLine("Initialized with " + CueSDK.LoadedArchitecture + "-SDK");
-
+                
                 keyboard = CueSDK.KeyboardSDK;
                 if (keyboard == null)
+                {
                     throw new WrapperException("No keyboard found");
+                }
+
+                keyboard.UpdateMode = UpdateMode.Continuous;
+                keyboard.UpdateFrequency = 1f / 30f;
             }
             catch (CUEException ex)
             {
@@ -80,6 +92,56 @@ namespace HDDLED
             {
                 Debug.WriteLine("Wrapper Exception! Message:" + ex.Message);
             }
+
+
+
+
+
+            //Console.WriteLine("rainbow-test");
+
+            // Create an simple horizontal rainbow containing two times the full spectrum
+            //RainbowGradient rainbowGradient = new RainbowGradient(0, 720);
+
+            //// Add the rainbow to the keyboard and perform an initial update
+            //keyboard.Brush = new LinearGradientBrush(rainbowGradient);
+            //keyboard.Update();
+
+            //// Let the rainbow move around for 10 secs
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    rainbowGradient.StartHue += 10f;
+            //    rainbowGradient.EndHue += 10f;
+            //    keyboard.Update();
+            //    Thread.Sleep(10);
+            //}
+
+            //GradientStop[] gradientStops =
+            //{
+            //    new GradientStop(0f, Color.Blue),
+            //    new GradientStop(1f, Color.Red)
+            //};
+            //LinearGradient blueToRedGradient = new LinearGradient(gradientStops);
+            //keyboard.Brush = new SolidColorBrush(Color.Transparent);
+            //keyboard.Update();
+
+            //IBrush brush = new SolidColorBrush(Color.White);
+            //keyboard.Brush = brush;
+            //keyboard.Update();
+
+
+
+        //    keyboard.Brush = new myBrush(new PointF(1f, 1f), new PointF(1f, 1f), blueToRedGradient);
+
+            //  keyboard.Update();
+
+
+            //keyboard.Brush = new SolidColorBrush(Color.Transparent);
+            //keyboard.Update();
+
+
+            //IBrush brush = new SolidColorBrush(Color.White);
+            //keyboard.Brush = brush;
+            //keyboard.Update();
 
             // Start worker thread that pulls HDD activity
             hddInfoWorkerThread = new Thread(new ThreadStart(HddActivityThread));
@@ -108,38 +170,71 @@ namespace HDDLED
         public void HddActivityThread()
         {
             ManagementClass driveDataClass = new ManagementClass("Win32_PerfFormattedData_PerfDisk_PhysicalDisk");
+            int col = 5;
+            int row = 21;
+
+
+            GradientStop[] gradientStops =
+            {
+                new GradientStop(0f, Color.Blue),
+                new GradientStop(1f, Color.Red)
+            };
+            LinearGradient blueToRedGradient = new LinearGradient(gradientStops);
+
+            myBrush brush = new myBrush(new PointF(1f, 1f), new PointF(1f, 1f), blueToRedGradient);
 
             try
             {
                 // Main loop where all the magic happens
                 while (true)
                 {
-                    // Connect to the drive performance instance 
-                    ManagementObjectCollection driveDataClassCollection = driveDataClass.GetInstances();
-                    foreach( ManagementObject obj in driveDataClassCollection)
+
+                    col+=15;
+
+                    if (col > 350)
                     {
-                        // Only process the _Total instance and ignore all the indevidual instances
-                        if( obj["Name"].ToString() == "_Total")
+                        col = 0;
+                        row+=18;
+
+                        if (row > 164)
                         {
-                            if( Convert.ToUInt64(obj["DiskBytesPersec"]) > 0 )
-                            {
-                                // Show busy icon
-                                hddNotifyIcon.Icon = busyIcon;
-                                keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Red;
-                                keyboard.Update();
-                            }
-                            else
-                            {
-                                // Show idle icon
-                                hddNotifyIcon.Icon = idleIcon;
-                                keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Green;
-                                keyboard.Update();
-                            }
+                            row = 31;
                         }
                     }
 
+                   // Console.WriteLine("{0}", col);
+                  
+                    brush.EndPoint = new PointF(col, row);
+                    keyboard.Brush = brush;
+                   // keyboard.Update();
+
+
+                    //// Connect to the drive performance instance 
+                    //ManagementObjectCollection driveDataClassCollection = driveDataClass.GetInstances();
+                    //foreach( ManagementObject obj in driveDataClassCollection)
+                    //{
+                    //    // Only process the _Total instance and ignore all the indevidual instances
+                    //    if( obj["Name"].ToString() == "_Total")
+                    //    {
+                    //        if( Convert.ToUInt64(obj["DiskBytesPersec"]) > 0 )
+                    //        {
+                    //            // Show busy icon
+                    //            //hddNotifyIcon.Icon = busyIcon;
+                    //            keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Red;
+                    //         //   keyboard.Update();
+                    //        }
+                    //        else
+                    //        {
+                    //            // Show idle icon
+                    //            //hddNotifyIcon.Icon = idleIcon;
+                    //            keyboard[CorsairKeyboardKeyId.PauseBreak].Led.Color = Color.Green;
+                    //         //   keyboard.Update();
+                    //        }
+                    //    }
+                    //}
+
                     // Sleep for 10th of millisecond 
-                    Thread.Sleep(100);
+                   Thread.Sleep(20);
                 }
             } catch( ThreadAbortException tbe )
             {

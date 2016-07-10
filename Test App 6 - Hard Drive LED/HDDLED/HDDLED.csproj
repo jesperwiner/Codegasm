@@ -59,6 +59,7 @@
       <DependentUpon>InvisibleForm.cs</DependentUpon>
     </Compile>
     <Compile Include="HDDLED.cs" />
+    <Compile Include="myBrush.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="InvisibleForm.resx">
       <DependentUpon>InvisibleForm.cs</DependentUpon>
